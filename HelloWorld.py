@@ -12,7 +12,7 @@
 
 # 例题1：将test_str去掉所有数字，然后分行打印
 # test_str = "你1是1我1的1小1宝1贝，如2果2不2是2的2话，请3你3变3成3我3的3小3宝3贝"
-
+#
 # a=test_str.split("，")
 # for i in a:
 #     print(i[0::2])
@@ -35,7 +35,7 @@
 # print(tjj)
 
 # 例题2：写一个函数，输入为任意长度的字符串，输出 {'字母‘:x，'数字':x,'空格':x,'其他':x}
-# a=b=c=d=0
+
 # def count_str(input_str):
 #     a=b=c=d=0
 #     for x in input_str:
@@ -68,21 +68,40 @@
 # list.remove(1)
 # print(list)
 
-list_word=[]
-list_count=[]
-def search_text(text):
-    text1=text.split(" ")
-    for i in text1:
-        if list_word.count(i) == 0:
-            list_word.append(i)
-            list_count.append(1)
-        else:
-            a=list_word.index(i)
-            list_count[a]+=1
-    list_sort=[]
-    for j in range(len(list_word)):
-        list_sort.append(list_count[j])
-        lista=[list_word[j],list_count[j]]
-        list_sort.append(lista)
-    return list_sort
-print(search_text("hello world"))
+# list_word=[]
+# list_count=[]
+# def search_text(text):
+#     text1=text.split(" ")
+#     for i in text1:
+#         if list_word.count(i) == 0:
+#             list_word.append(i)
+#             list_count.append(1)
+#         else:
+#             a=list_word.index(i)
+#             list_count[a]+=1
+#     list_sort=[]
+#     for j in range(len(list_word)):
+#         lista=[list_word[j],list_count[j]]
+#         list_sort.append(lista)
+#     return list_sort
+# print(search_text("hello world"))
+#
+#
+# #lambda 函数通常与内置函数如 map()、filter() 和 reduce() 一起使用，以便在集合上执行操作。
+# x = lambda a, b, c : a + b + c
+# print(x(5, 6, 2))
+#
+# numbers = [1, 2, 3, 4, 5]
+# squared = list(map(lambda x: x**2, numbers))
+# print(squared)  # 输出: [1, 4, 9, 16, 25]
+#
+# numbers = [1, 2, 3, 4, 5, 6, 7, 8]
+# even_numbers = list(filter(lambda x: x % 2 == 0, numbers))
+# print(even_numbers)  # 输出：[2, 4, 6, 8]
+#
+# from functools import reduce
+# numbers = [1, 2, 3, 4, 5]
+# # 使用 reduce() 和 lambda 函数计算乘积
+# product = reduce(lambda x, y: x * y, numbers)
+# print(product)  # 输出：120
+
