@@ -30,8 +30,24 @@ log_data = """
 2026-03-01 10:07:33|ERROR|user=Jack|action=pay|cost=150
 """
 
+dict_log = {}
 def analyze_log(log_data):
-    pass
+    logs=log_data.split("\n")
+    for data in logs:
+        if not data:
+            continue
+        log=data.split("|")
+        state=log[1]
+        user=log[2].split("=")[1]
+        action=log[3].split("=")[1]
+        cost=log[4].split("=")[1]
+        if user not in dict_log:
+            dict_log[user]=int(cost)
+        else:
+            dict_log[user]+=int(cost)
+    print(dict_log)
+
+print(analyze_log(log_data))
 
 
 
