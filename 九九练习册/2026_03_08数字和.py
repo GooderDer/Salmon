@@ -19,6 +19,11 @@
 
 
 def twoSum(nums: list[int], target: int) -> list[int]:
-    pass
+    for i in range(len(nums)):
+        for j in range(len(nums)-1):
+            if nums[i] + nums[j+1] == target:
+                return [i, j+1]
 
-print(twoSum([2,7,11,15], 9))
+
+
+print(twoSum([3,2,4], 6))
