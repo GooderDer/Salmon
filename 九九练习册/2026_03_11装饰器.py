@@ -9,9 +9,19 @@ https://www.runoob.com/python3/python-decorators.html
 
 def my_decorator(func):
     def wrapper():
-        print("谈九九以前想说的")
+        print("""
+            谈九九以前想说的：
+              真正的爱情如此乏味，它之所以美是因为总带有悲剧色彩。
+              如你所说，只有平淡无波的生活，时常枯燥低落的情绪，才能衬托出反常惊喜的极致快乐。
+              爱情的来势汹汹是怎样的让人幸福的眩晕。怪不得陈词滥调的语言说是“坠入爱河”。
+              随时会沉溺却必须拉着另一个生命共渡。
+        """)
         func()
-        print("谈九九以后想说的")
+        print("""
+            谈九九以后想说的：
+              我希望你向往生命的盎然，不会受伤，会热爱生活，
+              我想和你一起游戏人间，爱的坦荡，呼吸都想念我。
+        """)
     return wrapper
 
 @my_decorator
