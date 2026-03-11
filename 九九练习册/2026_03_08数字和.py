@@ -20,10 +20,10 @@
 
 def twoSum(nums: list[int], target: int) -> list[int]:
     for i in range(len(nums)):
-        for j in range(len(nums)-1):
-            if nums[i] + nums[j+1] == target:
-                return [i, j+1]
+        for j in range(i+1,len(nums)):
+            if nums[i] + nums[j] == target:
+                return [i, j]
 
 
 
-print(twoSum([3,2,4], 6))
+print(twoSum([0,3,3], 6))
