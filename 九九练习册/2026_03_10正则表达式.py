@@ -26,3 +26,32 @@ ret2 = ['192.168.1.1', '10.0.0.25', '172.16.5.100']
 
 import re
 
+
+# 详细教程https://www.byhy.net/py/lang/extra/regex/
+p1=re.compile(r'\d+')
+ret1=p1.findall(text1)
+print(ret1)
+
+p2=re.compile(r'\d+\.\d+\.\d+\.\d+')
+ret2=p2.findall(text2)
+print(ret2)
+
+
+content = '''苹果，苹果是绿色的
+橙子，橙子是橙色的
+香蕉，香蕉是黄色的'''
+
+# ^ 匹配每行开头
+# .* 匹配到第一个逗号之前的所有字符
+# () 捕获组只返回匹配的内容
+p3 = re.compile(r'^(.*)，', re.MULTILINE)
+for one in  p3.findall(content):
+    print(one)
+
+content = '''张三，手机号码15945678901
+李四，手机号码13945677701
+王二，手机号码13845666901'''
+# 先整行匹配，再分组需要的内容
+p4 = re.compile(r'^(.+)，.+(\d{11})', re.MULTILINE)
+for one in  p4.findall(content):
+    print(one)
