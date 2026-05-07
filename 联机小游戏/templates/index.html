@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜数字小游戏</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+
+        /* Lobby */
+        #lobby { text-align: center; padding-top: 80px; }
+        #lobby h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #f093fb, #f5576c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        #lobby p { color: #aaa; margin-bottom: 30px; }
+        .input-group {
+            display: flex; gap: 10px; justify-content: center;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 12px 20px;
+            border: 2px solid #444;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            width: 300px;
+        }
+        input[type="text"]:focus { border-color: #f5576c; }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #f093fb, #f5576c);
+            color: #fff;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245,87,108,0.4); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: 1px solid #555;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.25); }
+        .btn-small { padding: 8px 16px; font-size: 14px; }
+
+        /* Room List */
+        #room-list-section { margin-top: 30px; }
+        #room-list-section h2 { margin-bottom: 15px; font-size: 1.3em; color: #ccc; }
+        .room-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.08);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .room-item .room-info { text-align: left; }
+        .room-item .room-name { font-weight: 600; font-size: 1.1em; }
+        .room-item .room-players { color: #aaa; font-size: 0.9em; }
+        .room-item .room-players.full { color: #f5576c; }
+
+        /* Game Room */
+        #game-room { display: none; }
+        .room-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        .room-header h2 { font-size: 1.3em; }
+        .game-layout { display: flex; gap: 20px; }
+
+        /* Game Panel */
+        .game-panel {
+            flex: 1;
+            background: rgba(255,255,255,0.06);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .game-status {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        .game-status .turn-indicator {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #f5576c;
+        }
+        .game-status .hint {
+            margin-top: 8px;
+            color: #aaa;
+        }
+        .guess-input-group {
+            display: flex; gap: 10px; margin-bottom: 15px;
+        }
+        .guess-input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #444;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 20px;
+            text-align: center;
+            outline: none;
+        }
+        .guess-input-group input:focus { border-color: #f5576c; }
+        .guess-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .guess-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            font-size: 0.95em;
+        }
+        .guess-item .player-name { font-weight: 600; color: #f093fb; min-width: 80px; }
+        .guess-item .guess-num { font-weight: 600; min-width: 40px; }
+        .guess-item .result-big { color: #ff6b6b; }
+        .guess-item .result-small { color: #4ecdc4; }
+        .guess-item .result-correct { color: #ffd93d; font-weight: 700; }
+
+        /* Chat Panel */
+        .chat-panel {
+            width: 300px;
+            display: flex; flex-direction: column;
+            background: rgba(255,255,255,0.06);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 15px;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            max-height: 500px;
+        }
+        .chat-msg {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            word-break: break-word;
+        }
+        .chat-msg.system {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            background: none;
+        }
+        .chat-msg.user .sender { font-weight: 600; color: #f093fb; }
+        .chat-msg.user .text { color: #ddd; }
+        .chat-input-group {
+            display: flex; gap: 6px;
+            padding: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .chat-input-group input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+        .chat-input-group input:focus { border-color: #f5576c; }
+
+        .waiting-overlay {
+            text-align: center;
+            padding: 40px 20px;
+            color: #aaa;
+        }
+        .waiting-overlay .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #f5576c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hidden { display: none !important; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Lobby -->
+        <div id="lobby">
+            <h1>猜数字小游戏</h1>
+            <p>1-100 猜数字，先猜对者获胜！</p>
+            <div class="input-group">
+                <input type="text" id="nickname-input" placeholder="输入你的昵称" maxlength="12">
+                <button class="btn btn-primary" id="enter-btn">进入大厅</button>
+            </div>
+            <div id="lobby-content" class="hidden">
+                <div class="input-group">
+                    <input type="text" id="room-name-input" placeholder="房间名称" maxlength="20">
+                    <button class="btn btn-primary" id="create-room-btn">创建房间</button>
+                </div>
+                <div id="room-list-section">
+                    <h2>可用房间</h2>
+                    <div id="room-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Room -->
+        <div id="game-room">
+            <div class="room-header">
+                <h2 id="room-title">房间</h2>
+                <button class="btn btn-secondary btn-small" id="leave-room-btn">离开房间</button>
+            </div>
+            <div class="game-layout">
+                <div class="game-panel">
+                    <div class="game-status" id="game-status">
+                        <div class="waiting-overlay" id="waiting-msg">
+                            <div class="spinner"></div>
+                            等待对手加入...
+                        </div>
+                        <div id="active-game" class="hidden">
+                            <div class="turn-indicator" id="turn-text"></div>
+                            <div class="hint" id="hint-text"></div>
+                        </div>
+                    </div>
+                    <div id="guess-section" class="hidden">
+                        <div class="guess-input-group">
+                            <input type="number" id="guess-input" min="1" max="100" placeholder="1-100">
+                            <button class="btn btn-primary" id="guess-btn">猜！</button>
+                        </div>
+                    </div>
+                    <div class="guess-history" id="guess-history"></div>
+                    <div id="game-over-section" class="hidden" style="text-align:center; margin-top:15px;">
+                        <p id="game-over-msg" style="font-size:1.2em; margin-bottom:15px;"></p>
+                        <button class="btn btn-primary" id="restart-btn">再来一局</button>
+                    </div>
+                </div>
+                <div class="chat-panel">
+                    <div class="chat-header">聊天</div>
+                    <div class="chat-messages" id="chat-messages"></div>
+                    <div class="chat-input-group">
+                        <input type="text" id="chat-input" placeholder="输入消息..." maxlength="200">
+                        <button class="btn btn-primary btn-small" id="chat-send-btn">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let myNickname = "";
+        let currentRoom = null;
+        let isMyTurn = false;
+
+        const lobbyEl = document.getElementById("lobby");
+        const lobbyContent = document.getElementById("lobby-content");
+        const gameRoomEl = document.getElementById("game-room");
+        const nicknameInput = document.getElementById("nickname-input");
+        const enterBtn = document.getElementById("enter-btn");
+        const roomNameInput = document.getElementById("room-name-input");
+        const createRoomBtn = document.getElementById("create-room-btn");
+        const roomListEl = document.getElementById("room-list");
+        const roomTitle = document.getElementById("room-title");
+        const leaveRoomBtn = document.getElementById("leave-room-btn");
+        const gameStatus = document.getElementById("game-status");
+        const waitingMsg = document.getElementById("waiting-msg");
+        const activeGame = document.getElementById("active-game");
+        const turnText = document.getElementById("turn-text");
+        const hintText = document.getElementById("hint-text");
+        const guessSection = document.getElementById("guess-section");
+        const guessInput = document.getElementById("guess-input");
+        const guessBtn = document.getElementById("guess-btn");
+        const guessHistory = document.getElementById("guess-history");
+        const gameOverSection = document.getElementById("game-over-section");
+        const gameOverMsg = document.getElementById("game-over-msg");
+        const restartBtn = document.getElementById("restart-btn");
+        const chatMessages = document.getElementById("chat-messages");
+        const chatInput = document.getElementById("chat-input");
+        const chatSendBtn = document.getElementById("chat-send-btn");
+
+        // Enter lobby
+        enterBtn.addEventListener("click", enterLobby);
+        nicknameInput.addEventListener("keydown", e => { if (e.key === "Enter") enterLobby(); });
+
+        function enterLobby() {
+            myNickname = nicknameInput.value.trim() || "匿名玩家";
+            socket.emit("join_lobby", { nickname: myNickname });
+            lobbyContent.classList.remove("hidden");
+            nicknameInput.disabled = true;
+            enterBtn.disabled = true;
+        }
+
+        // Create room
+        createRoomBtn.addEventListener("click", () => {
+            socket.emit("create_room", { name: roomNameInput.value.trim() || myNickname + "的房间" });
+        });
+
+        // Room list
+        socket.on("room_list", rooms => {
+            if (rooms.length === 0) {
+                roomListEl.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">暂无房间，快来创建一个吧！</p>';
+                return;
+            }
+            roomListEl.innerHTML = rooms.map(r => `
+                <div class="room-item">
+                    <div class="room-info">
+                        <div class="room-name">${esc(r.name)}</div>
+                        <div class="room-players ${r.players >= r.max_players ? 'full' : ''}">${r.players}/${r.max_players} 人</div>
+                    </div>
+                    <button class="btn btn-secondary btn-small join-btn" data-id="${r.id}" ${r.players >= r.max_players ? 'disabled' : ''}>加入</button>
+                </div>
+            `).join("");
+            document.querySelectorAll(".join-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    socket.emit("join_room", { room_id: btn.dataset.id });
+                });
+            });
+        });
+
+        // Room joined
+        socket.on("room_joined", data => {
+            currentRoom = data.room_id;
+            lobbyEl.style.display = "none";
+            gameRoomEl.style.display = "block";
+            roomTitle.textContent = data.room_name;
+            _resetGameUI();
+        });
+
+        // Leave room
+        leaveRoomBtn.addEventListener("click", () => {
+            socket.emit("leave_room");
+        });
+
+        socket.on("left_room", () => {
+            currentRoom = null;
+            gameRoomEl.style.display = "none";
+            lobbyEl.style.display = "block";
+            nicknameInput.disabled = false;
+            enterBtn.disabled = false;
+            _resetGameUI();
+        });
+
+        // Game events
+        socket.on("game_start", data => {
+            waitingMsg.classList.add("hidden");
+            activeGame.classList.remove("hidden");
+            guessSection.classList.remove("hidden");
+            gameOverSection.classList.add("hidden");
+            guessHistory.innerHTML = "";
+            addSystemChat(data.message);
+        });
+
+        socket.on("turn_update", data => {
+            if (data.current_turn === myNickname) {
+                isMyTurn = true;
+                turnText.textContent = "轮到你了！";
+                hintText.textContent = "输入 1-100 的数字";
+                guessInput.disabled = false;
+                guessBtn.disabled = false;
+                guessInput.focus();
+            } else {
+                isMyTurn = false;
+                turnText.textContent = `等待 ${esc(data.current_turn)} 猜...`;
+                hintText.textContent = "";
+                guessInput.disabled = true;
+                guessBtn.disabled = true;
+            }
+        });
+
+        socket.on("guess_result", data => {
+            const cls = data.result === "correct" ? "result-correct"
+                : data.result === "大了" ? "result-big" : "result-small";
+            const resultText = data.result === "correct" ? "✅ 猜对了！"
+                : data.result === "大了" ? "⬇️ 大了" : "⬆️ 小了";
+            guessHistory.innerHTML += `
+                <div class="guess-item">
+                    <span class="player-name">${esc(data.nickname)}</span>
+                    <span class="guess-num">${data.guess}</span>
+                    <span class="${cls}">${resultText}</span>
+                </div>`;
+            guessHistory.scrollTop = guessHistory.scrollHeight;
+            addSystemChat(`${esc(data.nickname)} 猜了 ${data.guess}，${data.result === "correct" ? "猜对了！" : data.result}`);
+        });
+
+        socket.on("game_over", data => {
+            isMyTurn = false;
+            guessSection.classList.add("hidden");
+            gameOverSection.classList.remove("hidden");
+            gameOverMsg.textContent = data.message;
+            if (data.winner) {
+                addSystemChat(data.message);
+            }
+        });
+
+        // Guess
+        guessBtn.addEventListener("click", doGuess);
+        guessInput.addEventListener("keydown", e => { if (e.key === "Enter") doGuess(); });
+
+        function doGuess() {
+            if (!isMyTurn) return;
+            const num = parseInt(guessInput.value);
+            if (isNaN(num) || num < 1 || num > 100) {
+                hintText.textContent = "请输入 1-100 的数字！";
+                return;
+            }
+            socket.emit("guess", { number: num });
+            guessInput.value = "";
+        }
+
+        restartBtn.addEventListener("click", () => {
+            socket.emit("restart_game");
+        });
+
+        // Chat
+        chatSendBtn.addEventListener("click", sendChat);
+        chatInput.addEventListener("keydown", e => { if (e.key === "Enter") sendChat(); });
+
+        function sendChat() {
+            const msg = chatInput.value.trim();
+            if (!msg) return;
+            socket.emit("chat_message", { message: msg });
+            chatInput.value = "";
+        }
+
+        socket.on("chat_message", data => {
+            addUserChat(data.nickname, data.message);
+        });
+
+        socket.on("system_message", msg => {
+            addSystemChat(msg);
+        });
+
+        // Error
+        socket.on("error_message", msg => {
+            hintText.textContent = msg;
+            setTimeout(() => { hintText.textContent = ""; }, 3000);
+        });
+
+        function addSystemChat(msg) {
+            chatMessages.innerHTML += `<div class="chat-msg system">${esc(msg)}</div>`;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addUserChat(name, msg) {
+            chatMessages.innerHTML += `<div class="chat-msg user"><span class="sender">${esc(name)}：</span><span class="text">${esc(msg)}</span></div>`;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function _resetGameUI() {
+            waitingMsg.classList.remove("hidden");
+            activeGame.classList.add("hidden");
+            guessSection.classList.add("hidden");
+            gameOverSection.classList.add("hidden");
+            guessHistory.innerHTML = "";
+            isMyTurn = false;
+        }
+
+        function esc(s) {
+            const d = document.createElement("div");
+            d.textContent = s;
+            return d.innerHTML;
+        }
+    </script>
+</body>
+</html>
